@@ -43,6 +43,9 @@ test("keys are bring-your-own and never persisted", () => {
     assert.ok(!/localStorage\s*\.\s*set/i.test(html), "must not persist to localStorage");
     assert.ok(!/sessionStorage\s*\.\s*set/i.test(html), "must not persist to sessionStorage");
     assert.ok(!/document\s*\.\s*cookie\s*=/i.test(html), "must not persist to cookies");
+    assert.ok(!/window\s*\[\s*["'](?:localStorage|sessionStorage)["']\s*\]/i.test(html), "must not access storage via bracket notation on window");
+    assert.ok(!/(?:localStorage|sessionStorage)\s*\[/i.test(html), "must not write to storage via bracket notation");
+    assert.ok(!/(?:localStorage|sessionStorage)\s*\.\s*\w+\s*=/i.test(html), "must not write directly to storage properties");
 });
 
 test("credits Pollinations", () => {

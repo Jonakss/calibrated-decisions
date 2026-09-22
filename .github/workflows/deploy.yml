@@ -18,10 +18,14 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
+concurrency:
+  group: deploy-modal-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # Tests on every PR that touches the app. No secrets: node stdlib only.
+  # Tests on every PR or push that touches the app. No secrets: node stdlib only.
   test:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +37,7 @@ jobs:
   # Deploy runs only on main (reached via merged PR — branch ruleset enforces
   # "require a pull request before merging" with an empty bypass list).
   deploy:
+    needs: test
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
