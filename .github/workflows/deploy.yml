@@ -5,15 +5,42 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "test.mjs"
+      - "package.json"
+      - "modal_app_calibrated.py"
+      - ".github/workflows/deploy.yml"
+  pull_request:
+    paths:
+      - "index.html"
+      - "test.mjs"
+      - "package.json"
       - "modal_app_calibrated.py"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:
-  deploy:
+  # Tests on every PR that touches the app. No secrets: node stdlib only.
+  test:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test test.mjs
+
+  # Deploy runs only on main (reached via merged PR — branch ruleset enforces
+  # "require a pull request before merging" with an empty bypass list).
+  deploy:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
