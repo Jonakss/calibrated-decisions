@@ -39,9 +39,13 @@ test("the classic 400 mistake is guided UX", () => {
 test("keys are bring-your-own and never persisted", () => {
     // input field asks for the caller key
     assert.match(html, /(api[-\s]?key|apikey)/i);
-    // no storage of secrets
+    // no storage of secrets — dot notation, bracket notation, and property writes
     assert.ok(!/localStorage\s*\.\s*set/i.test(html), "must not persist to localStorage");
     assert.ok(!/sessionStorage\s*\.\s*set/i.test(html), "must not persist to sessionStorage");
+    assert.ok(!/window\s*\[\s*["']localStorage["']\s*\]/i.test(html), "no bracket-notation localStorage access");
+    assert.ok(!/window\s*\[\s*["']sessionStorage["']\s*\]/i.test(html), "no bracket-notation sessionStorage access");
+    assert.ok(!/\b(localStorage|sessionStorage)\s*\[[^\]]+\]\s*=/i.test(html), "no indexed storage writes");
+    assert.ok(!/\b(localStorage|sessionStorage)\s*\.\s*\w+\s*=/i.test(html), "no direct storage property writes");
     assert.ok(!/document\s*\.\s*cookie\s*=/i.test(html), "must not persist to cookies");
 });
 

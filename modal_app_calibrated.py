@@ -22,8 +22,6 @@ app = modal.App("calibrated-decisions")
 @app.function(image=image, scaledown_window=300, max_containers=1)
 @modal.fastapi_endpoint(method="GET")
 def app_page():
-    from pathlib import Path as _P
-
     from fastapi.responses import HTMLResponse
 
-    return HTMLResponse(_P("/app/index.html").read_text())
+    return HTMLResponse(Path("/app/index.html").read_text())
