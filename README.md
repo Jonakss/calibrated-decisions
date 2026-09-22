@@ -44,7 +44,7 @@ image = (modal.Image.debian_slim(python_version="3.12")
 app = modal.App("calibrated-decisions")
 
 @app.function(image=image)
-@modal.fastapi_endpoint(label="app-page")
+@modal.fastapi_endpoint(method="GET")
 def app_page():
     from pathlib import Path
     from fastapi.responses import HTMLResponse
