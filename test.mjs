@@ -49,3 +49,8 @@ test("credits Pollinations", () => {
     assert.match(html, /Powered by/i);
     assert.match(html, /pollinations\.ai/i);
 });
+
+test("favicon embedded (Pollinations-generated PNG, no external request)", () => {
+    assert.match(html, /rel="icon"/);
+    assert.match(html, /data:image\/png;base64,/);
+});
