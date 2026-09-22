@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calibrated Decisions — a visual playground for Pollinations typed decisions</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--edge:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#f78166;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--blue:#58a6ff}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;padding:24px;max-width:1100px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:2px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:18px 0 8px}
+  p.sub{color:var(--dim);margin-bottom:14px}
+  a{color:var(--blue)}
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:8px;padding:16px;margin-bottom:16px}
+  textarea,input[type=text],input[type=password],select{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--edge);border-radius:6px;padding:8px 10px;font:13px/1.4 ui-monospace,monospace}
+  textarea{min-height:80px;resize:vertical}
+  textarea.criteria{min-height:110px}
+  label{display:block;font-size:12px;color:var(--dim);margin:10px 0 4px}
+  button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-weight:600;cursor:pointer;font-size:14px}
+  button:hover{filter:brightness(1.1)}
+  button:disabled{opacity:.5;cursor:wait}
+  button.ghost{background:transparent;border:1px solid var(--edge);color:var(--fg);padding:4px 10px;font-size:12px}
+  .row{display:flex;gap:12px;align-items:flex-start}
+  .row>*{flex:1}
+  .qcard{border:1px solid var(--edge);border-radius:6px;padding:12px;margin-top:10px}
+  .qhead{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .qhead input[name=qname]{flex:0 0 180px}
+  .qhead select{flex:0 0 110px}
+  .qhead button.ghost{flex:0 0 auto;color:#f85149;border-color:#f8514940}
+  .bar{height:18px;background:#21262d;border-radius:3px;overflow:hidden;margin:2px 0 6px;position:relative}
+  .bar>div{height:100%;background:linear-gradient(90deg,#1f6feb,#58a6ff);min-width:2px}
+  .bar>span{position:absolute;left:8px;top:0;line-height:18px;font:11px ui-monospace,monospace;color:#fff;text-shadow:0 1px 2px #000}
+  .res .lbl{font:13px/1.2 ui-monospace,monospace;color:var(--fg);margin-top:8px}
+  .res .meta{font:11px ui-monospace,monospace;color:var(--dim);margin-top:10px;white-space:pre-wrap}
+  .ans{background:var(--bg);border:1px solid var(--edge);border-radius:6px;padding:12px;margin-top:8px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-right:6px}
+  .b-ok{background:#1a3a1f;color:var(--ok)} .b-warn{background:#3a2a1a;color:var(--warn)} .b-err{background:#3a1a1f;color:var(--bad)}
+  .errbox{background:#2d1217;border:1px solid #f8514940;border-radius:6px;padding:12px;font:12px ui-monospace,monospace;white-space:pre-wrap;color:#ffb3b8;margin-top:8px}
+  .tipbox{background:#152238;border:1px solid #1f6feb55;border-radius:6px;padding:12px;margin-top:8px;font-size:13px}
+  .raw{background:var(--bg);border:1px solid var(--edge);border-radius:6px;padding:10px;font:11px ui-monospace,monospace;white-space:pre-wrap;color:var(--dim);margin-top:8px;max-height:220px;overflow:auto}
+  footer{color:var(--dim);font-size:12px;margin-top:24px;padding-top:12px;border-top:1px solid var(--edge)}
+  .kv{display:flex;gap:6px;align-items:center;margin:4px 0}
+  .kv .k{flex:0 0 90px;font:12px ui-monospace,monospace;color:var(--dim)}
+  .kv .bar{flex:1;margin:0}
+  details{margin-top:6px}
+  summary{cursor:pointer;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+<h1>Calibrated Decisions</h1>
+<p class="sub">A visual playground for the Pollinations <strong>typed-decision</strong> API (<code>POST /alpha/decisions</code>, powered by Jev). Build a decision request, send it, and read the calibrated probabilities — no token-by-token output, just calibrated answers.</p>
+
+<div class="panel">
+  <label>API key — bring your own pollen (kept in memory only, never stored or sent anywhere else)</label>
+  <input type="password" id="key" placeholder="sk-… your Pollinations API key">
+</div>
+
+<div class="panel">
+  <label>Presets</label>
+  <div class="row" style="gap:8px">
+    <button class="ghost" onclick="preset('support')">Support triage</button>
+    <button class="ghost" onclick="preset('prgate')">PR-review gate</button>
+    <button class="ghost" onclick="preset('churn')">Churn detector</button>
+  </div>
+  <label>State — the facts to decide on (text, JSON or a list)</label>
+  <textarea id="state"></textarea>
+  <label>Questions (typed: choice / score / noul)</label>
+  <div id="questions"></div>
+  <button class="ghost" onclick="addQuestion()">+ add question</button>
+  <div style="margin-top:14px"><button id="send" onclick="send()">Decide →</button></div>
+</div>
+
+<div id="results"></div>
+
+<footer>
+  Powered by <a href="https://gen.pollinations.ai/docs">Pollinations</a> — decision API: <code>POST https://gen.pollinations.ai/alpha/decisions</code> · Jev returns calibrated probabilities for <code>choice</code>, <code>score</code> and <code>noul</code> questions, with routing metadata. Your key stays client-side; requests go straight to the gateway. Learn the schema gotchas in <a href="https://github.com/pollinations/collective-memory/tree/main/pollinations/tips">the community tips</a>.
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const PRESETS = {
+  support: {
+    state: "Subject: Duplicate charge on invoice #4411\n\nHi, we were billed twice for March. Please refund the duplicate today or we will cancel our plan.",
+    questions: [
+      {name:"department", type:"choice", instructions:"Which team should handle this request?",
+       criteria:{"billing":"invoices, payments, refunds","technical":"bugs, outages, system errors","sales":"pricing, new contracts","other":"everything else"}},
+      {name:"urgency", type:"score", instructions:"How urgent is this request?", criteria:["not urgent","soon","critical deadline or blocking issue"]},
+      {name:"churn_risk", type:"noul", instructions:"Does the user threaten to cancel or leave?"},
+      {name:"refund_requested", type:"noul", instructions:"Does the user explicitly request a refund?"}
+    ]
+  },
+  prgate: {
+    state: "PR adds a validation script (test.mjs, 12 checks) and hardens an agent config: strict ASCII output, binding gate (no gate verdict = no publish), unpinnable claims deleted, pre-push checklist, observed push sha, unified stop contract. All checks passing; Strix security review clean; 5 verified commits in the target repo.",
+    questions: [
+      {name:"ready_for_review", type:"noul", instructions:"Is this submission complete enough to open the PR and let the maintainer review it?",
+       criteria:{true:"all checklist items satisfied with verified evidence; only owner publishing clicks remain", false:"a substantive gap remains that the maintainer would catch in the first review pass"}},
+      {name:"publish_now", type:"noul", instructions:"Is delaying further productive?", criteria:{true:"delaying adds real value", false:"further local changes are polishing"}},
+      {name:"risk", type:"score", instructions:"How risky is opening this PR now?", criteria:["no risk","minor fixes expected","material review friction likely"]}
+    ]
+  },
+  churn: {
+    state: "User message: \"Given the recent changes I'm rethinking our subscription. I'll give it two weeks.\"",
+    questions: [
+      {name:"churn", type:"noul", instructions:"Is this user at churn risk?", criteria:{true:"signals of cancellation or reconsideration", false:"positive or neutral retention signals"}},
+      {name:"sentiment", type:"score", instructions:"How negative is the sentiment?", criteria:["positive","neutral","concerned","critical"]},
+      {name:"action", type:"choice", instructions:"Which play should the team run?", criteria:{"check-in":"personal check-in call or email","offer":"discount or plan change","do-nothing":"no signal strong enough to act"}}
+    ]
+  }
+};
+
+function qCard(q){
+  const d = document.createElement("div"); d.className="qcard";
+  d.innerHTML = `
+    <div class="qhead">
+      <input type="text" name="qname" placeholder="question name" value="${q?q.name:""}">
+      <select name="qtype"><option value="choice">choice</option><option value="score">score</option><option value="noul">noul</option></select>
+      <button class="ghost" onclick="this.closest('.qcard').remove()">remove</button>
+    </div>
+    <label>instructions — what to decide</label>
+    <textarea name="qinstr" style="min-height:40px"></textarea>
+    <label>criteria — for choice: {"option":"meaning"} record · for score: ordered rungs array (min 2) · for noul: optional {"true":..,"false":..}</label>
+    <textarea name="qcrit" class="criteria" placeholder='choice → {"billing":"invoices","technical":"bugs"}\nscore  → ["not urgent","soon","critical"]\nnoul   → {"true":"user threatens to leave","false":"no threat"}'></textarea>`;
+  if(q){
+    d.querySelector('[name=qtype]').value = q.type;
+    d.querySelector('[name=qinstr]').value = q.instructions;
+    d.querySelector('[name=qcrit]').value =
+      q.type==="choice" ? JSON.stringify(q.criteria,null,1) : JSON.stringify(q.criteria);
+    d.querySelector('[name=qtype]').dispatchEvent(new Event("change"));
+  }
+  d.querySelector('[name=qtype]').addEventListener("change", e=>{
+    const c = d.querySelector('[name=qcrit]');
+    c.placeholder = e.target.value==="choice"
+      ? '{"billing":"invoices","technical":"bugs"}'
+      : e.target.value==="score" ? '["not urgent","soon","critical"] (ordered, min 2)'
+      : '{"true":"...","false":"..."} (optional)';
+  });
+  return d;
+}
+function addQuestion(){ document.getElementById("questions").appendChild(qCard(null)); }
+function preset(k){
+  document.getElementById("state").value = PRESETS[k].state;
+  const q = document.getElementById("questions"); q.innerHTML="";
+  PRESETS[k].questions.forEach(x=>q.appendChild(qCard(x)));
+}
+preset("support");
+
+function buildPayload(){
+  const state = document.getElementById("state").value;
+  const questions = {};
+  document.querySelectorAll("#questions .qcard").forEach(card=>{
+    const name = card.querySelector('[name=qname]').value.trim();
+    const type = card.querySelector('[name=qtype]').value;
+    const instructions = card.querySelector('[name=qinstr]').value.trim();
+    const critRaw = card.querySelector('[name=qcrit]').value.trim();
+    if(!name || !instructions) return;
+    const q = {type, instructions};
+    if(critRaw){ try{ q.criteria = JSON.parse(critRaw); }catch(e){ /* keep raw for the educational error */ } }
+    questions[name] = q;
+  });
+  return {model:"jev", state, questions};
+}
+
+async function send(){
+  const btn = document.getElementById("send"); btn.disabled = true;
+  const out = document.getElementById("results"); out.innerHTML="";
+  const key = document.getElementById("key").value.trim();
+  if(!key){ out.innerHTML = '<div class="errbox">Add your Pollinations API key first (bring your own pollen — it stays in memory).</div>'; btn.disabled=false; return; }
+  const payload = buildPayload();
+  let raw = "";
+  try{
+    const r = await fetch("https://gen.pollinations.ai/alpha/decisions", {
+      method:"POST",
+      headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    raw = await r.text();
+    if(!r.ok) throw new Error(raw);
+    const d = JSON.parse(raw);
+    render(d, payload);
+  }catch(e){
+    renderError(String(e.message||e), payload);
+  }
+  document.getElementById("send").disabled = false;
+}
+
+function bar(label, pct){
+  const w = Math.max(0, Math.min(100, pct*100)).toFixed(1);
+  return `<div class="kv"><div class="k">${escapeHtml(String(label))}</div><div class="bar"><div style="width:${w}%"></div><span>${w}%</span></div></div>`;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function render(d, payload){
+  const a = d.answers||{}; let html = "";
+  for(const [name, ans] of Object.entries(a)){
+    html += `<div class="panel res"><div class="lbl">▶ <b>${escapeHtml(name)}</b> <span class="badge b-ok">${ans.type}</span></div>`;
+    if(ans.type==="choice" && ans.probabilities){
+      html += `<div class="ans"><div>choice: <b>${escapeHtml(String(ans.choice))}</b>${ans.confidence!=null?` · confidence ${(ans.confidence*100).toFixed(0)}%`:""}</div>`;
+      html += Object.entries(ans.probabilities).map(([k,v])=>bar(k,v)).join("");
+      html += "</div>";
+    } else if(ans.type==="score" && ans.probabilities){
+      const legend = (ans.legend||{}); html += `<div class="ans">score: <b>${ans.score}</b> of ${Object.keys(legend||{}).length-1}${ans.confidence!=null?` · confidence ${(ans.confidence*100).toFixed(0)}%`:""}</div>`;
+      html += Object.entries(ans.probabilities).map(([i,v])=>bar((legend&&legend[String(i)])||i, v)).join("");
+    } else if(ans.type==="noul"){
+      html += `<div class="ans">P(true) = <b>${(ans.noul*100).toFixed(1)}%</b></div>`;
+      html += bar("true", ans.noul) + bar("false", 1-(ans.noul||0));
+    }
+    html += "</div>";
+  }
+  if(d.routing) html += `<div class="panel"><div class="lbl">routing</div><div class="meta">${escapeHtml(JSON.stringify(d.routing,null,1))}</div></div>`;
+  if(d.usage) html += `<div class="panel"><div class="lbl">usage</div><div class="meta">${escapeHtml(JSON.stringify(d.usage))}</div> <div class="meta">model: ${escapeHtml(d.model||"")}</div></div>`;
+  html += `<details><summary>raw response</summary><div class="raw">${escapeHtml(JSON.stringify(d,null,1))}</div></details>`;
+  document.getElementById("results").innerHTML = html;
+}
+
+function renderError(msg, payload){
+  let tip = "";
+  if(/expected record/.test(msg)) tip = `<div class="tipbox"><b>Schema gotcha:</b> <code>choice</code> criteria must be a <b>record</b> (<code>{"option":"meaning"}</code>), and <code>score</code> criteria an ordered <b>array</b> (min 2). You likely sent an array where a record belongs. <a href="https://github.com/pollinations/collective-memory/blob/main/pollinations/tips/2026-09-21-decisions-choice-dict-score-array.md">Read the tip →</a></div>`;
+  else if(/balance|402/i.test(msg)) tip = `<div class="tipbox">The <code>/alpha/decisions</code> endpoint bills the caller's balance. Bring your own key with enough balance — <a href="https://enter.pollinations.ai/top-up">top up →</a></div>`;
+  else if(/auth|401/i.test(msg)) tip = `<div class="tipbox">Auth failed — check the API key.</div>`;
+  document.getElementById("results").innerHTML =
+    `<div class="panel"><div class="lbl"><span class="badge b-err">error</span></div><div class="errbox">${escapeHtml(msg.slice(0,2000))}</div>${tip}<details><summary>request sent</summary><div class="raw">${escapeHtml(JSON.stringify(payload,null,1))}</div></details></div>`;
+}
+</script>
+</body>
+</html>

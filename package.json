@@ -1,0 +1,10 @@
+{
+  "name": "calibrated-decisions",
+  "version": "1.0.0",
+  "description": "A visual playground for the Pollinations Jev typed-decisions API (POST /alpha/decisions). Static page, bring-your-own-key.",
+  "scripts": {
+    "test": "node --test test.mjs"
+  },
+  "keywords": ["pollinations", "jev", "typed-decisions", "calibration", "playground"],
+  "license": "MIT"
+}
